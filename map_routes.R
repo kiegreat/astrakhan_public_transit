@@ -39,5 +39,41 @@ plot_route <- function(route_linestring) {
     geom_sf(data = r1, inherit.aes = FALSE, col = 'red')
   
 }
-
 plot_route(g$linestring[2])
+
+# -----
+
+r1 <- jsonlite::fromJSON('data/2gis/1.json')
+
+df <- as.data.frame(r1)
+
+r1$result$items$name
+r1$result$items$directions
+
+route <- r1$result$items$directions[[1]]
+
+linestring <- route$geometry$selection[1]
+linestring2 <- route$geometry$selection[2]
+
+pl <- route$platforms[[1]]
+pl2 <- route$platforms[[2]]
+
+pl$geometry$selection
+
+
+sf_stations <- st_as_sfc(pl$geometry$selection)
+
+ggmap(basemap) +
+  geom_sf(data = sf_stations, inherit.aes = FALSE, col = 'red', size = 2)
+
+
+
+
+
+
+
+
+
+
+
+
