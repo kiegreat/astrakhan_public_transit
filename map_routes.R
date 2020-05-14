@@ -15,81 +15,67 @@ get_sf_geoms <- function(file_path, geoms) {
   
   json_data <- jsonlite::fromJSON(file_path)
   directions <- json_data$result$items$directions[[1]]
-
-  dir1 <- directions$type[[1]]
-  dir2 <- directions$type[[2]]
-
+  
   if(geoms == 'stops') {
     
-    stops1 <- directions$platforms[[1]]
-    stops2 <- directions$platforms[[2]]
+    result <- data.frame()
     
-    df_stops1 <- data.frame(
-      route_name = json_data$result$items$name,
-      stop_name = stops1$name,
-      direction = dir1
-    ) %>% 
-    st_set_geometry(st_as_sfc(stops1$geometry$selection))
-    
-    df_stops2 <- data.frame(
-      route_name = json_data$result$items$name,
-      stop_name = stops2$name,
-      direction = dir2
-    ) %>% 
-    st_set_geometry(st_as_sfc(stops2$geometry$selection))
-    
-    result <- rbind(df_stops1, df_stops2)
-    st_crs(result) <- "+epsg=32638 +units=m +no_defs"
-    
+    for(i in 1:length(directions$type)) {
+      
+      dir <- directions$type[[i]]
+      stops <- directions$platforms[[i]]
+      
+      df_stops <- data.frame(
+        route_name = json_data$result$items$name,
+        stop_name = stops$name,
+        direction = dir,
+        selection = stops$geometry$selection
+      )
+      result <- rbind(result, df_stops)
+    }
     return(result)
     
   } else if (geoms == 'routes') {
     
-    route1 <- directions$geometry$selection[1]
-    route2 <- directions$geometry$selection[2]
+    result <- data.frame()
     
-    df_route1 <- data.frame(
-      route_name = json_data$result$items$name,
-      direction = dir1
-    ) %>% 
-    st_set_geometry(st_as_sfc(route1))
-    
-    df_route2 <- data.frame(
-      route_name = json_data$result$items$name,
-      direction = dir1
-    ) %>% 
-    st_set_geometry(st_as_sfc(route2))
-    
-    result <- rbind(df_route1, df_route2)
-    st_crs(result) <- "+epsg=32638 +units=m +no_defs"
-    
+    for(i in 1:length(directions$type)) {
+      
+      dir <- directions$type[[i]]
+      route <- directions$geometry$selection[i]
+      
+      df_route <- data.frame(
+        route_name = json_data$result$items$name,
+        direction = dir,
+        selection = route
+      )
+      result <- rbind(result, df_route)
+    }
     return(result)
     
   } else {
     print('Provide correct "geoms" attribute to function: stops or routes')
   }
-  
 }
 get_sf_geoms_possibly <- possibly(get_sf_geoms, otherwise = NULL)
 
 f <- str_c('data/2gis/', list.files('data/2gis/'))
 
-# Workaround for binding data together
-# purrr::map_df fails to keep sf class :-(
-df_temp <- get_sf_geoms_possibly(file_path = f[1], geoms = 'stops')
-df_stops <- df_temp[0, ]; rm(df_temp); gc()
-df_temp <- get_sf_geoms_possibly(file_path = f[1], geoms = 'routes')
-df_routes <- df_temp[0, ]; rm(df_temp); gc()
+# Transit stops
+df_stops <- map_df(.x = f, .f = ~get_sf_geoms_possibly(file_path = .x, geoms = 'stops'))
 
-for(i in 1:length(f)) {
-  df_temp <- get_sf_geoms_possibly(file_path = f[i], geoms = 'stops')
-  df_stops <- rbind(df_stops, df_temp)
-}
+geoms <- st_as_sfc(df_stops$selection)
+df_stops <- df_stops %>% select(-selection) %>% st_set_geometry(geoms)
+st_crs(df_stops) <- "+epsg=32638 +units=m +no_defs"
 
-for(i in 1:length(f)) {
-  df_temp <- get_sf_geoms_possibly(file_path = f[i], geoms = 'routes')
-  df_routes <- rbind(df_routes, df_temp)
-}
+# Routest
+df_routes <- map_df(.x = f, .f = ~get_sf_geoms_possibly(file_path = .x, geoms = 'routes'))
+
+geoms <- st_as_sfc(df_routes$selection)
+df_routes <- df_routes %>% select(-selection) %>% st_set_geometry(geoms)
+st_crs(df_routes) <- "+epsg=32638 +units=m +no_defs"
+
+
 
 # - Map data ----
 
@@ -99,6 +85,47 @@ ggmap(basemap) +
 ggmap(basemap) +
   geom_sf(data = df_routes, aes(col = route_name), inherit.aes = F) +
   theme(legend.position = 'none')
+
+# 1. Check errors when extacting routes
+
+# err <- df_routes %>% 
+#   mutate(
+#     route = str_replace_all(string = route_name, pattern = '[:alpha:]*$', replacement = ''),
+#     route_n = route %>% as.numeric()
+#   ) %>% pull(route_n) %>% unique()
+# 
+# f <- list.files('data/2gis/') %>% str_replace_all(pattern = '[:alpha:]*.json', replacement = '') %>% as.numeric()
+# 
+# setdiff(f, err)
+# 
+# json_data <- jsonlite::fromJSON('data/2gis/41.json')
+# directions <- json_data$result$items$directions[[1]]
+# 
+# dir1 <- directions$type[[1]]
+# dir2 <- directions$type[[2]]
+
+# Circle routes only have 1 direction. Because of that function fails
+
+# 2. Download more routes
+# 3. Load population data from reforma-zhkh and 2gis
+# 4. Load water layer from OSM, create buffers from transit stops, crop them by water layer
+# 5. Intersect population data and buffers
+# 6. Union routes, measure lengths
+
+
+
+
+
+
+length(directions$type)
+
+
+
+get_sf_geoms_possibly(file_path = f[1], geoms = 'routes')
+
+
+get_sf_geoms(file_path = 'data/2gis/63.json', geoms = 'routes')
+
 
 
 
