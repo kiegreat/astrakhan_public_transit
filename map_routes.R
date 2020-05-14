@@ -66,16 +66,18 @@ df_stops <- map_df(.x = f, .f = ~get_sf_geoms_possibly(file_path = .x, geoms = '
 
 geoms <- st_as_sfc(df_stops$selection)
 df_stops <- df_stops %>% select(-selection) %>% st_set_geometry(geoms)
-st_crs(df_stops) <- "+epsg=32638 +units=m +no_defs"
+st_crs(df_stops) <- "+init=epsg:32638"
 
 # Routest
 df_routes <- map_df(.x = f, .f = ~get_sf_geoms_possibly(file_path = .x, geoms = 'routes'))
 
 geoms <- st_as_sfc(df_routes$selection)
 df_routes <- df_routes %>% select(-selection) %>% st_set_geometry(geoms)
-st_crs(df_routes) <- "+epsg=32638 +units=m +no_defs"
+st_crs(df_routes) <- "+init=epsg:32638"
 
 
+n_distinct(df_routes$route_name)
+rm(geoms)
 
 # - Map data ----
 
@@ -107,8 +109,29 @@ ggmap(basemap) +
 # Circle routes only have 1 direction. Because of that function fails
 
 # 2. Download more routes
+
+# Done
+
 # 3. Load population data from reforma-zhkh and 2gis
 # 4. Load water layer from OSM, create buffers from transit stops, crop them by water layer
+
+w <- read_sf('data/osm/gis_osm_water_a_free_1.shp') # w stands for water
+b <- read_sf('data/osm/gis_osm_places_a_free_1.shp') # b stands for boundaries
+
+b <- b %>% filter(name == 'Астрахань')
+w <- st_intersection(b, w)
+
+ggplot() +
+  geom_sf(data = w)
+
+buffers <- df_stops %>% 
+  st_buffer(dist = 500)
+
+ggmap(basemap) +
+  geom_sf(data = w, inherit.aes = F, fill = 'steelblue') +
+  geom_sf(data = df_stops %>% slice(1) %>% st_buffer(dist = 500), inherit.aes = F, fill = 'red')
+  
+
 # 5. Intersect population data and buffers
 # 6. Union routes, measure lengths
 
@@ -117,14 +140,19 @@ ggmap(basemap) +
 
 
 
-length(directions$type)
 
 
 
-get_sf_geoms_possibly(file_path = f[1], geoms = 'routes')
 
 
-get_sf_geoms(file_path = 'data/2gis/63.json', geoms = 'routes')
+
+
+
+
+
+
+
+
 
 
 
