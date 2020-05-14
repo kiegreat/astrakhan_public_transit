@@ -1,4 +1,6 @@
 
+options(stringsAsFactors = F)
+
 library(sf)
 library(tidyverse)
 library(openxlsx)
@@ -21,8 +23,6 @@ get_sf_geoms <- function(file_path, geoms) {
     
     stops1 <- directions$platforms[[1]]
     stops2 <- directions$platforms[[2]]
-    
-    sf_st <- st_as_sfc(stops1$geometry$selection)
     
     df_stops1 <- data.frame(
       route_name = json_data$result$items$name,
@@ -74,20 +74,31 @@ get_sf_geoms_possibly <- possibly(get_sf_geoms, otherwise = NULL)
 
 f <- str_c('data/2gis/', list.files('data/2gis/'))
 
-df_stops <- map_df(.x = f, .f = ~get_sf_geoms_possibly(file_path = .x, geoms = 'stops'))
+# Workaround for binding data together
+# purrr::map_df fails to keep sf class :-(
+df_temp <- get_sf_geoms_possibly(file_path = f[1], geoms = 'stops')
+df_stops <- df_temp[0, ]; rm(df_temp); gc()
+df_temp <- get_sf_geoms_possibly(file_path = f[1], geoms = 'routes')
+df_routes <- df_temp[0, ]; rm(df_temp); gc()
 
+for(i in 1:length(f)) {
+  df_temp <- get_sf_geoms_possibly(file_path = f[i], geoms = 'stops')
+  df_stops <- rbind(df_stops, df_temp)
+}
 
+for(i in 1:length(f)) {
+  df_temp <- get_sf_geoms_possibly(file_path = f[i], geoms = 'routes')
+  df_routes <- rbind(df_routes, df_temp)
+}
 
+# - Map data ----
 
+ggmap(basemap) +
+  geom_sf(data = df_stops, inherit.aes = F)
 
-
-
-
-
-
-
-
-
+ggmap(basemap) +
+  geom_sf(data = df_routes, aes(col = route_name), inherit.aes = F) +
+  theme(legend.position = 'none')
 
 
 
