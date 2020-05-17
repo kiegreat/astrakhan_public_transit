@@ -90,85 +90,6 @@ ggmap(basemap) +
   geom_sf(data = df_routes, aes(col = route_name), inherit.aes = F) +
   theme(legend.position = 'none')
 
-# 1. Check errors when extacting routes
-
-# err <- df_routes %>% 
-#   mutate(
-#     route = str_replace_all(string = route_name, pattern = '[:alpha:]*$', replacement = ''),
-#     route_n = route %>% as.numeric()
-#   ) %>% pull(route_n) %>% unique()
-# 
-# f <- list.files('data/2gis/') %>% str_replace_all(pattern = '[:alpha:]*.json', replacement = '') %>% as.numeric()
-# 
-# setdiff(f, err)
-# 
-# json_data <- jsonlite::fromJSON('data/2gis/41.json')
-# directions <- json_data$result$items$directions[[1]]
-# 
-# dir1 <- directions$type[[1]]
-# dir2 <- directions$type[[2]]
-
-# Circle routes only have 1 direction. Because of that function fails
-
-# 2. Download more routes
-
-# Done
-
-# 3. Load population data from reforma-zhkh and 2gis
-
-mkd <- read_csv2('data/reforma-gkh/export-kr1_1-30-20200501.csv') %>% 
-  filter(mun_obr == 'город Астрахань') %>% 
-  select(
-    address,
-    total_ppl
-  ) %>% 
-  na.omit()
-
-purp <- readRDS('data/bids.rds')
-coords <- readRDS('data/geocoded.rds') %>% mutate(address = str_replace_all(address, pattern = 'Астрахань, ', ''))
-suburbs <- purp %>% 
-  filter(purpose %in% c('Частный дом', 'Коттедж', 'Таунхаус')) %>% 
-  left_join(coords, by = 'address')
-
-glimpse(suburbs)
-summary(suburbs)
-table(suburbs$purpose)
-
-rm(purp, coords); gc()
-mkd$total_ppl %>% sum()
-
-ppl_per_house <- (529793 - sum(mkd$total_ppl)) / nrow(suburbs)
-suburbs <- suburbs %>% mutate(total_ppl = ppl_per_house)
-
-geocode_beta <- function(address) {
-  
-  loc <- address %>% 
-    str_replace_all(pattern = ',', replacement = '') %>%
-    str_replace_all(pattern = ' ', replacement = '+')
-  
-  request <- str_c('https://geocode-maps.yandex.ru/1.x/?apikey=', key, '&geocode=', loc) %>% URLencode()
-  
-  xml <- request %>% 
-    readLines(warn = FALSE) %>% 
-    str_c(sep = "\n", collapse = "") %>% 
-    xmlParse(asText = TRUE) %>% 
-    xmlToList()
-  
-  pos <- xml$GeoObjectCollection$featureMember$GeoObject$Point$pos
-  
-  lon <- pos %>% str_replace_all(pattern = ' .*$', replacement = '') %>% as.numeric()
-  lat <- pos %>% str_replace_all(pattern = '^.* ', replacement = '') %>% as.numeric()
-  
-  result <- data.frame('address' = address, 'lon' = lon, 'lat' = lat)
-  print(str_c(address, ' // ', Sys.time()) )
-  
-  return(result)
-}
-geocode <- possibly(.f = geocode_beta, otherwise = NULL)
-
-mkd_geocoded <- map_df(.x = mkd$address, .f = geocode)
-saveRDS(mkd_geocoded, 'data/reforma-gkh/mkd_geocoded')
-
 
 
 
@@ -205,6 +126,9 @@ ggmap(basemap) +
   geom_sf(data = df_stops %>% slice(1:40), inherit.aes = F, col = 'red', size = 2)
 
 # 5. Intersect population data and buffers
+
+
+
 # 6. Union routes, measure lengths
 
 

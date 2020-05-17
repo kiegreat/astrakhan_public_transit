@@ -24,7 +24,10 @@ s <- df3 %>%
   summarise(n_len = n_distinct(len), n_start = n_distinct(start_of_operation),
             n_eco = n_distinct(eco_standard), n_max = n_distinct(max_num_of_buses), n_op = n_distinct(operators))
 
+n_distinct(df3$id)
+
 ch <- df3 %>% filter(route == '92н')
+ch <- df3 %>% distinct(id, route)
 
 # - Final handling of missing data -
 
