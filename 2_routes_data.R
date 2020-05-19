@@ -60,12 +60,13 @@ f <- str_c('data/2gis/', list.files('data/2gis/'))
 df_stops <- map_df(.x = f, .f = ~get_sf_geoms_possibly(file_path = .x, geoms = 'stops'))
 geoms <- st_as_sfc(df_stops$selection)
 df_stops <- df_stops %>% select(-selection) %>% st_set_geometry(geoms)
-saveRDS(df_stops, 'da')
+saveRDS(df_stops, 'data/stops_data.rds')
 
 # Routest
 df_routes <- map_df(.x = f, .f = ~get_sf_geoms_possibly(file_path = .x, geoms = 'routes'))
 geoms <- st_as_sfc(df_routes$selection)
 df_routes <- df_routes %>% select(-selection) %>% st_set_geometry(geoms)
+saveRDS(df_stops, 'data/routes_data.rds')
 
 rm(geoms)
 n_distinct(df_routes$route_name)
