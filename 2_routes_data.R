@@ -66,7 +66,7 @@ saveRDS(df_stops, 'data/stops_data.rds')
 df_routes <- map_df(.x = f, .f = ~get_sf_geoms_possibly(file_path = .x, geoms = 'routes'))
 geoms <- st_as_sfc(df_routes$selection)
 df_routes <- df_routes %>% select(-selection) %>% st_set_geometry(geoms)
-saveRDS(df_stops, 'data/routes_data.rds')
+saveRDS(df_routes, 'data/routes_data.rds')
 
 rm(geoms)
 n_distinct(df_routes$route_name)
