@@ -109,7 +109,7 @@ df6 %>%
   group_by(buses_class) %>% 
   summarise(n = sum(buses))
 
-
+saveRDS(df6, 'data/buses_per_route.rds')
 
 
 
